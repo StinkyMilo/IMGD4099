@@ -1,0 +1,28 @@
+@fragment
+fn fs( @builtin(position) pos : vec4f ) -> @location(0) vec4f {
+  // create normalized position coordinates in range 0-1
+  let npos  = pos.xy / res;
+  let audioWeight=10.;
+  let audioBias=-1.3 ;
+  let audioMin=0.01;
+  let multiplier=2.;
+  let thickness = multiplier*max(audio[0]+audio[1]+audio[2]+audioBias,audioMin)/audioWeight;
+  let centerPos = vec2f(0.5,0.5);
+  let length = 0.5;
+  let colorSpeed = 3.;
+  let tau = 6.28;
+  let t = frame/60.;
+  let speed = 10.;
+  let maxSlices = 5.;
+  var brightness: f32 = 0.;
+  for(var offset: f32 = 0.; offset < tau; offset+=tau/(maxSlices*sin(t)+maxSlices+1)){
+    let angle = t*tau/speed+offset;
+    let distFromLine = abs(cos(angle)*(centerPos.y-npos.y) - sin(angle)*(centerPos.x-npos.x));
+    brightness = max(brightness,1-distFromLine/thickness);
+  }
+  let smushedAudio = vec3f(min(max(audio[0],0.5),1.),min(max(audio[1],0.5),1.),min(max(audio[2],0.5),1.));
+  let red = .5 + sin( colorSpeed*(t*tau/speed + tau*npos.x)) * .5;
+  let green = .5 + sin( colorSpeed*(t*tau/speed - tau*(2./3.) + tau*npos.y)) * .5;
+  let blue = .5 + sin(colorSpeed*(t*tau/speed - tau*(4./3.) + tau * (npos.x+npos.y)/2.)) * 0.5;
+  return vec4f(red*brightness,green*brightness,blue*brightness,1);
+}
