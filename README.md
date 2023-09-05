@@ -2,11 +2,15 @@
  
 ## Assignment 1
 
-This is an old draft! I'll be updating it tonight.
-
 You can find the video [here](https://youtu.be/MR4XaC_MEC8). The code is located in the Assignment1 folder in the repository, under wgslcode.txt
 
-The primary idea I wanted to explore was lines moving radially around the screen like a clock. Incorporating audio afterward was an interesting challenge, because most of the parameters I could vary ended up looking rather bad if they didn't vary continuously. Since audio levels can be very "spiky" changing values a lot from frame to frame, it took me a while to find something that could vary spikily without disrupting the flow of the shader. Eventually, though, I found that varying line thickness was a good way to do it.
+The intent paragraphs are below:
 
-I found it interesting to plug in floating point values that didn't really "make sense" the way I had built the code. I first did this by adjusting the increment of my for loop to, rather than dividing the circle into an integer number of lines, dividing it into a continually varying floating point number, which created much more interesting patterns. I also changed the thickness multiplier to -1. This caused everywhere to be bright, but proximity to the lines still caused distortion. It looked very different from the standard line rotation, but it still brought out changes in volume very effectively, so I decided to switch between positive and negative multipliers throughout the song. My choice of song was somewhat arbitrary, but I decided to do a song I composed last summer and give it a bit of a video.
+### Aesthetic:
+I had two completely different ideas I combined in this animation. The first idea was to have rotating radial lights with thickness that changed depending on the amplitude of the music. The second idea was inspired by the "patterns" section of the reading. I wanted to experiment with truchet tiles, so I decided to make a way to generate them that changed roughly on-beat with the song. I also had them bob up and down with the music to add a bit more motion. I combined these two at the end to give the piece a bit of cohesion. The song I used was one I composed a long time ago 
 
+### Tech:
+On the technical side of things, I made the lights by calculating the angle based on the time, then using a formula to determine distance from a line given an angle and a point. I used the max of the proximity to each of these lines to determine the brightness, and I decided the number of lines by dividing up a circle into a number of pieces that varied by the sine of the time value. For the patterns, I created an array of sixteen angles and determined the angle by choosing an offset within that array and a number of tiles before repeating and varying both over time. To create the grid, I adapted the "tile" function in the patterns section of the book, and to angle them I used matrix multiplication on the coordinate system. I also decided to start with a zoomed-in tile system and then zoom out, reaching a limit, and for that the tanh function worked quite well. To combine the two different sections, I simply used a smoothstep with the output of the two functions, which created a nice effect where the only areas that displayed the pattern were those inside the radial lights
+
+### Feedback:
+I've posted to the discord but have yet to receive any feedback! I'll update this with a summary of it as soon as I get any.
