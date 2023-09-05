@@ -4,7 +4,7 @@
 
 You can find the video [here](https://youtu.be/MR4XaC_MEC8). The code is located in the Assignment1 folder in the repository, under wgslcode.txt
 
-The intent paragraphs are below:
+The intent paragraphs are below, but are also included in the assignment1 folder.:
 
 ### Aesthetic:
 I had two completely different ideas I combined in this animation. The first idea was to have rotating radial lights with thickness that changed depending on the amplitude of the music. The second idea was inspired by the "patterns" section of the reading. I wanted to experiment with truchet tiles, so I decided to make a way to generate them that changed roughly on-beat with the song. I also had them bob up and down with the music to add a bit more motion. I combined these two at the end to give the piece a bit of cohesion. The song I used was one I composed last summer, and I figured I may as well put it here.
