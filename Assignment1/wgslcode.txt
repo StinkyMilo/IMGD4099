@@ -1,12 +1,73 @@
-@fragment
-fn fs( @builtin(position) pos : vec4f ) -> @location(0) vec4f {
+fn doRotate(pos: vec2f, angle: f32) -> vec2f{
+  var pos2: vec2f;
+  pos2 = pos-.5;
+  pos2 = mat2x2f(cos(angle),-sin(angle),sin(angle),cos(angle))*pos2;
+  pos2+=.5;
+  return pos2;
+}
+
+const version = 3;
+const audioBias = -1.3;
+const multiplier = 1.5;
+
+//Basically gives you the position within the tile.
+fn tile(pos: vec2f, size: f32) -> vec2f{
+  return 1-vec2f(size-pos.x%size,pos.y%size)/size;
+}
+
+fn fs1(spos: vec4f) -> vec4f{
+  let tau = 6.283185307179586;
+  let ff = frame/24.65;
+  let f = i32(floor(ff));
+  // create normalized position coordinates in range 0-1
+  var pos: vec2f;
+  pos = spos.xy/min(res.x,res.y);
+  pos+=vec2f(.5,.5);
+  let numTiles=tanh(ff/20.)*10.;
+  let tileSize = 1./numTiles;
+  let repeatLength = 2.+f32(f)%5;
+  let resolution = 100.;
+  let offset = 0.1;
+  let weight=2.;
+  pos.y+=max(0,floor((audio[0]+audio[1]+audio[2])/3.*resolution)/(weight*resolution)-offset);
+  let screenpos = pos.xy;
+  var patternArray: array<f32,16>;
+  patternArray[0] = 0.;
+  patternArray[1] = tau/4.;
+  patternArray[2] = tau/2.;
+  patternArray[3] = 3.*tau/4.;
+  patternArray[4] = 0.;
+  patternArray[5] = tau/2.;
+  patternArray[6] = tau/4.;
+  patternArray[7] = 3.*tau/4.;
+  patternArray[8] = 0.;
+  patternArray[9] = 3 * tau / 4.;
+  patternArray[10] = tau / 4.;
+  patternArray[11] = tau / 2.;
+  patternArray[12] = 3.*tau/4.;
+  patternArray[13] = tau/2.;
+  patternArray[14] = tau/4.;
+  patternArray[15] = 0.;
+  pos = tile(pos,tileSize);
+  var index: i32;
+  let oddColumnOffset=repeatLength/2.;
+  let startOffset = f%(16-i32(repeatLength));
+  index=0;
+  index+=i32(floor((numTiles*screenpos.x)%repeatLength));
+  index+=i32(floor((numTiles*screenpos.y)%2.)*oddColumnOffset);
+  var brightness: f32;
+  pos = doRotate(pos,patternArray[index%i32(repeatLength)+startOffset]);
+  brightness=step(pos.x,pos.y);
+  return vec4f(brightness,brightness,brightness,1.);
+}
+
+fn fs2( pos : vec4f ) -> vec4f {
   // create normalized position coordinates in range 0-1
   let npos  = pos.xy / res;
   let audioWeight=10.;
-  let audioBias=-1.3 ;
   let audioMin=0.01;
-  let multiplier=2.;
-  let thickness = multiplier*max(audio[0]+audio[1]+audio[2]+audioBias,audioMin)/audioWeight;
+  let audioMax = 1.;
+  let thickness = multiplier*clamp(audio[0]+audio[1]+audio[2]+audioBias,audioMin,audioMax)/audioWeight;
   let centerPos = vec2f(0.5,0.5);
   let length = 0.5;
   let colorSpeed = 3.;
@@ -20,9 +81,24 @@ fn fs( @builtin(position) pos : vec4f ) -> @location(0) vec4f {
     let distFromLine = abs(cos(angle)*(centerPos.y-npos.y) - sin(angle)*(centerPos.x-npos.x));
     brightness = max(brightness,1-distFromLine/thickness);
   }
-  let smushedAudio = vec3f(min(max(audio[0],0.5),1.),min(max(audio[1],0.5),1.),min(max(audio[2],0.5),1.));
-  let red = .5 + sin( colorSpeed*(t*tau/speed + tau*npos.x)) * .5;
-  let green = .5 + sin( colorSpeed*(t*tau/speed - tau*(2./3.) + tau*npos.y)) * .5;
-  let blue = .5 + sin(colorSpeed*(t*tau/speed - tau*(4./3.) + tau * (npos.x+npos.y)/2.)) * 0.5;
+  let red = .5 + sin( colorSpeed*(t*tau/speed + sqrt(tau*npos.x))) * .5;
+  let green = .5 + sin( colorSpeed*(t*tau/speed + sqrt(tau*npos.y))) * .5;
+  let blue = 1.-sqrt(distance(npos.xy,centerPos));
   return vec4f(red*brightness,green*brightness,blue*brightness,1);
+}
+
+fn fs3(color1: vec4f, color2: vec4f,x: f32) -> vec4f{
+  return vec4f(smoothstep(color1.r,color2.r,x), smoothstep(color1.g,color2.g,x), smoothstep(color1.b, color2.b,x), 1.);
+}
+
+@fragment
+fn fs( @builtin(position) spos : vec4f ) -> @location(0) vec4f {
+  let wetness=.01;
+  if(version==1){
+    return fs1(spos);
+  }else if(version==2){
+    return fs2(spos);
+  }else{
+    return fs3(fs1(spos),fs2(spos),wetness);
+  }
 }
