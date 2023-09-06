@@ -2,7 +2,7 @@
  
 ## Assignment 1
 
-You can find the video [here](https://youtu.be/MR4XaC_MEC8). The code is located in [here](https://github.com/StinkyMilo/IMGD4099/blob/main/Assignment1/wgslcode.txt), and the intent paragraphs are [here](https://github.com/StinkyMilo/IMGD4099/blob/main/Assignment1/aesthetic-intent.md).
+You can find the video [here](https://youtu.be/MR4XaC_MEC8). The code is located in [here](https://github.com/StinkyMilo/IMGD4099/blob/main/Assignment1/wgslcode.txt), and the intent paragraphs and feedback are [here](https://github.com/StinkyMilo/IMGD4099/blob/main/Assignment1/aesthetic-intent.md).
 
 ### Functions used
 
