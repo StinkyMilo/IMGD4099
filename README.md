@@ -14,3 +14,6 @@ You can find the project [here](https://become-an-eldritch-abomination.glitch.me
 
 When checking it out, do so in a dark room if you can, and make goofy faces!
 
+### Degrees of Interactivity
+
+There are two sliders, clicking, and pressing space. Each has a different effect.
