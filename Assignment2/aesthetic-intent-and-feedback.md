@@ -5,4 +5,6 @@ The intent here was to make a shader that turns the user into an eldritch abomin
 The greyscale values are calculated like so: first, the RGB values of the image are averaged. Then, the brightness is put through a smoothstep function between itself and 0, using the user-defined threshold as the value of x. This causes an increased contrast between light and dark areas. Finally, I round the brightness to one of greyres (user-adjustable variable) evenly distributed shades of grey. There is also cellular-noise-based distortion. The image is offset by a proportion of the distance from each point to its closest reference point. If feedback mode is enabled (by toggling space), a past brightness will also be calculated and subtracted from the final brightness value, emphasizing motion and darkening the background. When the mouse is held, the y coordinate is moved by a polynomial function that stretches out the center of the frame.
 
 ### Feedback:
-Not received yet!
+I haven't gotten feedback yet, but Arthur did take a look and found that it wasn't working on their system. It seems the parsers for our systems were different, and the line pos2=pos-.5 compiled fine on my end but not on Arthur's. I changed this to 0.5 and added a space (and changed some similar lines), and then it seemed to work.
+
+When I get any more feedback, I'll put it here!
