@@ -19,6 +19,6 @@ When checking it out, do so in a dark room if you can, and make goofy faces!
 There are two sliders, clicking, and pressing space. Each has a different effect.
 
 ## Assignment 3
-You can find the project [here](https://reaction-diffusion-milo.glitch.me/). The code is located [here](TODO), and the explanation is [here](https://github.com/StinkyMilo/IMGD4099/blob/main/Assignment3/description-and-feedback.md)
+You can find the project [here](https://reaction-diffusion-milo.glitch.me/). The code is located [here](https://github.com/StinkyMilo/IMGD4099/tree/main/Assignment3/code), and the explanation is [here](https://github.com/StinkyMilo/IMGD4099/blob/main/Assignment3/description-and-feedback.md).
 
 In this one, click to place down chemical B!
