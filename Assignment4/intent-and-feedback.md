@@ -4,4 +4,4 @@ The basic idea I had at the beginning was a sort of "stinky object in a cartoon"
 
 ## Feedback
 
-I haven't received any feedback yet! I'll upload here when I do!
+I received feedback from Sam and Nick. Nick liked the overlapping waves, particularly emphasizing high amplitudes and low speed overlapping paths that can form. I remembered from him that timeScale wasn't really a good name for the slider that controlled the frequency of the waves, as timeScale would imply a higher upward speed. Sam suggested adding a way to adjust the thickness of columns to make the system more versatile for fire and water and the like. I think that'd be cool! If I didn't spend so much time on those circles I may have done that.
