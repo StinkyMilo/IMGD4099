@@ -5,13 +5,8 @@
 }
 
 <div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
     <script src="~/js/signalr/dist/browser/signalr.js"></script>
     <script src="~/js/wbb.js"></script>
-    <script>
-        setInterval(function(){
-            console.log(SensorValues);
-        })
-    </script>
+    <script type = "module" src="~/js/shader.js"></script>
+    <canvas style="height: 100%; width: 100%; margin: 0; padding: 0;" id="gpucanv"></canvas>
 </div>

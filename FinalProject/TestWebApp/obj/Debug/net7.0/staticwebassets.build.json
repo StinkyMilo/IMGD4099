@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "2ihEzxYfJJrg6LebfLvPPYKfyTJ6356P3L+k6wF5fPQ=",
+  "Hash": "M32fj/l8QvCrwEbLOBPrOwVYSHdjtrwrPnvn32RiREQ=",
   "Source": "TestWebApp",
   "BasePath": "_content/TestWebApp",
   "Mode": "Default",
@@ -83,6 +83,23 @@
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "wwwroot\\favicon.ico"
+    },
+    {
+      "Identity": "C:\\Users\\miloc\\Documents\\IMGD4900\\FinalProject\\TestWebApp\\wwwroot\\js\\shader.js",
+      "SourceId": "TestWebApp",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\miloc\\Documents\\IMGD4900\\FinalProject\\TestWebApp\\wwwroot\\",
+      "BasePath": "_content/TestWebApp",
+      "RelativePath": "js/shader.js",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\js\\shader.js"
     },
     {
       "Identity": "C:\\Users\\miloc\\Documents\\IMGD4900\\FinalProject\\TestWebApp\\wwwroot\\js\\signalr\\dist\\browser\\signalr.js",
