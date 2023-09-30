@@ -13,8 +13,16 @@
       "PackagePath": "staticwebassets\\favicon.ico"
     },
     {
+      "Id": "C:\\Users\\miloc\\Documents\\IMGD4900\\FinalProject\\TestWebApp\\wwwroot\\js\\signalr\\dist\\browser\\signalr.js",
+      "PackagePath": "staticwebassets\\js\\signalr\\dist\\browser\\signalr.js"
+    },
+    {
       "Id": "C:\\Users\\miloc\\Documents\\IMGD4900\\FinalProject\\TestWebApp\\wwwroot\\js\\site.js",
       "PackagePath": "staticwebassets\\js\\site.js"
+    },
+    {
+      "Id": "C:\\Users\\miloc\\Documents\\IMGD4900\\FinalProject\\TestWebApp\\wwwroot\\js\\wbb.js",
+      "PackagePath": "staticwebassets\\js\\wbb.js"
     },
     {
       "Id": "C:\\Users\\miloc\\Documents\\IMGD4900\\FinalProject\\TestWebApp\\wwwroot\\lib\\bootstrap\\LICENSE",

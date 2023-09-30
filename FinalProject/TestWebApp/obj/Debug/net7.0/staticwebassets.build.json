@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "megtiQPpjD2yoEe4vaBdd6FBjx7Gl5ihDhBFKidBKbk=",
+  "Hash": "2ihEzxYfJJrg6LebfLvPPYKfyTJ6356P3L+k6wF5fPQ=",
   "Source": "TestWebApp",
   "BasePath": "_content/TestWebApp",
   "Mode": "Default",
@@ -85,6 +85,23 @@
       "OriginalItemSpec": "wwwroot\\favicon.ico"
     },
     {
+      "Identity": "C:\\Users\\miloc\\Documents\\IMGD4900\\FinalProject\\TestWebApp\\wwwroot\\js\\signalr\\dist\\browser\\signalr.js",
+      "SourceId": "TestWebApp",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\miloc\\Documents\\IMGD4900\\FinalProject\\TestWebApp\\wwwroot\\",
+      "BasePath": "_content/TestWebApp",
+      "RelativePath": "js/signalr/dist/browser/signalr.js",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\js\\signalr\\dist\\browser\\signalr.js"
+    },
+    {
       "Identity": "C:\\Users\\miloc\\Documents\\IMGD4900\\FinalProject\\TestWebApp\\wwwroot\\js\\site.js",
       "SourceId": "TestWebApp",
       "SourceType": "Discovered",
@@ -100,6 +117,23 @@
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "wwwroot\\js\\site.js"
+    },
+    {
+      "Identity": "C:\\Users\\miloc\\Documents\\IMGD4900\\FinalProject\\TestWebApp\\wwwroot\\js\\wbb.js",
+      "SourceId": "TestWebApp",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\miloc\\Documents\\IMGD4900\\FinalProject\\TestWebApp\\wwwroot\\",
+      "BasePath": "_content/TestWebApp",
+      "RelativePath": "js/wbb.js",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\js\\wbb.js"
     },
     {
       "Identity": "C:\\Users\\miloc\\Documents\\IMGD4900\\FinalProject\\TestWebApp\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-grid.css",

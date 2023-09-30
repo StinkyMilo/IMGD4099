@@ -28,3 +28,4 @@ C:\Users\miloc\Documents\IMGD4900\FinalProject\TestWebApp\obj\Debug\net7.0\refin
 C:\Users\miloc\Documents\IMGD4900\FinalProject\TestWebApp\obj\Debug\net7.0\TestWebApp.pdb
 C:\Users\miloc\Documents\IMGD4900\FinalProject\TestWebApp\obj\Debug\net7.0\TestWebApp.genruntimeconfig.cache
 C:\Users\miloc\Documents\IMGD4900\FinalProject\TestWebApp\obj\Debug\net7.0\ref\TestWebApp.dll
+C:\Users\miloc\Documents\IMGD4900\FinalProject\TestWebApp\bin\Debug\net7.0\libman.json
