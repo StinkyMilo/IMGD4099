@@ -53,12 +53,12 @@ code: `
     @group(0) @binding(1) var<storage> cellState: array<vec2f>;
     
     @vertex
-    fn vs(@location(0) pos: vec2f, @builtin(instance_index) instance: u32) -> @builtin(position) vec4f{
-        return vec4f(input, 0., 1.);
+    fn vs(@location(0) pos: vec2f) -> @builtin(position) vec4f{
+        return vec4f(pos, 0., 1.);
     }
     
     @fragment
-    fn fs() -> @location(0) vec4f{
+    fn fs(@builtin(position) pos: vec4f) -> @location(0) vec4f{
         let idx = u32((pos.y%res.y)*res.x + (res.x * -0.5) + pos.x%res.x);
         let X = cellState[idx].x;
         let Y = cellState[idx].y;
@@ -67,7 +67,7 @@ code: `
 `
 });
 
-const WORKGROUP_SIZE = 8;
+const WORKGROUP_SIZE = 16;
 
 const simulationShaderModule =device.createShaderModule({
 label: "Game of life shader",
@@ -76,19 +76,19 @@ code:`
     @group(0) @binding(1) var<storage> cellStateIn: array<vec2f>;
     @group(0) @binding(2) var<storage, read_write> cellStateOut: array<vec2f>;
     
-    fn cellIndex(cell: vec2u) -> u32{
-        return (cell.y % u32(grid.y)) * u32(grid.x) + (cell.x % u32(grid.x));
+    fn cellIndex(cellX: u32, cellY: u32) -> u32{
+        return (cellY % u32(grid.y)) * u32(grid.x) + (cellX % u32(grid.x));
     }
 
     const Dx = 1.;
     const Dy = .5;
     const f = 0.055;
-    let k = 0.062;
+    const k = 0.062;
     
     @compute
     @workgroup_size(${WORKGROUP_SIZE}, ${WORKGROUP_SIZE})
     fn cs(@builtin(global_invocation_id) cell: vec3u){
-        var convolution: array<f32> = array(0.05, 0.2, 0.05, 0.2, -1., 0.2, 0.05, 0.2, 0.05);
+        var convolution: array<f32, 9> = array(0.05, 0.2, 0.05, 0.2, -1., 0.2, 0.05, 0.2, 0.05);
         let currentIndex = cellIndex(cell.x,cell.y);
         var gradient: vec2f = vec2f(0.,0.);
         for(var i: u32 = 0; i < 9; i++){
@@ -110,11 +110,11 @@ const bindGroupLayout = device.createBindGroupLayout({
 label: "Cell bind group layout",
 entries: [{
     binding: 0,
-    visibility: GPUShaderStage.VERTEX | GPUShaderStage.COMPUTE,
+    visibility: GPUShaderStage.COMPUTE | GPUShaderStage.FRAGMENT,
     buffer: {}
 },{
     binding: 1,
-    visibility: GPUShaderStage.VERTEX | GPUShaderStage.COMPUTE,
+    visibility: GPUShaderStage.COMPUTE | GPUShaderStage.FRAGMENT,
     buffer: {type: "read-only-storage"}
 },{
     binding: 2,
@@ -233,7 +233,7 @@ function updateGrid(){
     const computePass = encoder.beginComputePass();
     computePass.setPipeline(simulationPipeline);
     computePass.setBindGroup(0, bindGroups[step%2]);
-    const numGroups = 16;
+    const numGroups = WORKGROUP_SIZE;
     const workgroupCount = [
         Math.round(window.innerWidth/numGroups),
         Math.round(window.innerHeight/numGroups),
