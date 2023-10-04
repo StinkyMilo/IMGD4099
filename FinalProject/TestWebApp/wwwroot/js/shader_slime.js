@@ -51,7 +51,6 @@ label: "Cell shader",
 code: `
     @group(0) @binding(0) var<uniform> res: vec2f;
     @group(0) @binding(1) var<storage> cellState: array<vec2f>;
-    @group(0) @binding(3) var<uniform> mousePos: vec2f;
     
     @vertex
     fn vs(@location(0) pos: vec2f) -> @builtin(position) vec4f{
@@ -61,7 +60,7 @@ code: `
     @fragment
     fn fs(@builtin(position) pos: vec4f) -> @location(0) vec4f{
         // let npos = pos.xy/res;
-        // return vec4f(mousePos/res,0.,1.);
+        // return vec4f(npos,0.,1.);
         let idx = u32((pos.y%res.y)*res.x + (res.x*-0.5) + pos.x%res.x);
         let X = cellState[idx].x;
         let Y = cellState[idx].y;
@@ -78,28 +77,21 @@ code:`
     @group(0) @binding(0) var<uniform> grid: vec2f;
     @group(0) @binding(1) var<storage> cellStateIn: array<vec2f>;
     @group(0) @binding(2) var<storage, read_write> cellStateOut: array<vec2f>;
-    @group(0) @binding(3) var<uniform> mousePos: vec2f;
     
     fn cellIndex(cellX: u32, cellY: u32) -> u32{
-        return (cellY) * u32(grid.x) + (cellX);
+        return (cellY % u32(grid.y)) * u32(grid.x) + (cellX % u32(grid.x));
     }
 
     const Dx = 1.;
     const Dy = .5;
-    const f = 0.0367;
-    const k = 0.0649;
+    const f = 0.055;
+    const k = 0.062;
     
     @compute
     @workgroup_size(${WORKGROUP_SIZE}, ${WORKGROUP_SIZE})
     fn cs(@builtin(global_invocation_id) cell: vec3u){
         // return;
-        //TODO: make equivalent for Wbb
-        let mpos = (mousePos/grid - vec2f(0.5,0.5))*0.05;
         var convolution: array<f32, 9> = array(0.05, 0.2, 0.05, 0.2, -1., 0.2, 0.05, 0.2, 0.05);
-        let conv2 = array((-mpos.x - mpos.y)/2, -mpos.y, (mpos.x-mpos.y)/2, -mpos.x, 0, mpos.x, (-mpos.x+mpos.y)/2, mpos.y, (mpos.x+mpos.y)/2);
-        for(var i: u32 = 0; i < 9; i++){
-            convolution[i]+=conv2[i];
-        }
         let currentIndex = cellIndex(cell.x,cell.y);
         var gradient: vec2f = vec2f(0.,0.);
         for(var i: u32 = 0; i < 9; i++){
@@ -131,10 +123,6 @@ entries: [{
         binding: 2,
         visibility: GPUShaderStage.COMPUTE | GPUShaderStage.FRAGMENT,
         buffer: {type: "storage"}
-    },{
-        binding: 3,
-        visibility: GPUShaderStage.COMPUTE | GPUShaderStage.FRAGMENT,
-        buffer: {}
     }]
 });
 
@@ -176,20 +164,8 @@ const uniformBuffer = device.createBuffer({
     size: uniformArray.byteLength,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
 });
+
 device.queue.writeBuffer(uniformBuffer,0,uniformArray);
-
-var mousePos = new Float32Array([0, 0]);
-window.onmousemove=function(event){
-    mousePos = new Float32Array([event.pageX, event.pageY]);
-}
-
-const mouseBuffer = device.createBuffer({
-    label: "Mouse Pos",
-    size: mousePos.byteLength,
-    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-});
-
-device.queue.writeBuffer(mouseBuffer,0,mousePos);
 
 const cellStateArray = new Float32Array(window.innerWidth*window.innerHeight*2);
 const cellStateStorage = [
@@ -206,9 +182,8 @@ const cellStateStorage = [
 ];
 
 for(var i = 0; i < cellStateArray.length; i+=2){
-    var x = (i/2)%window.innerWidth;
-    var y = ((i/2)-x)/window.innerWidth;
-    // console.log(x,y);
+    var x = (i/2)%window.innerHeight;
+    var y = ((i/2)-x)/window.innerHeight;
     var distX = window.innerWidth/2 - x;
     var distY = window.innerHeight/2 - y;
     var dist = Math.sqrt(distX*distX + distY*distY);
@@ -222,6 +197,7 @@ for(var i = 0; i < cellStateArray.length; i+=2){
 }
 
 device.queue.writeBuffer(cellStateStorage[0],0,cellStateArray);
+
 
 device.queue.writeBuffer(cellStateStorage[1],0,cellStateArray);
 
@@ -239,9 +215,6 @@ const bindGroups = [
         },{
             binding: 2,
             resource: {buffer: cellStateStorage[1]}
-        },{
-            binding: 3,
-            resource: {buffer: mouseBuffer}
         }]
     }),
 
@@ -257,9 +230,6 @@ const bindGroups = [
         },{
         binding: 2,
             resource: {buffer: cellStateStorage[0]}
-        },{
-            binding: 3,
-            resource: {buffer: mouseBuffer}
         }]
     })
 ];
@@ -276,16 +246,12 @@ const workgroupCount = [
 
 function updateGrid(){
     const encoder = device.createCommandEncoder();
-    const COMPUTE_STEPS = 8;
-    device.queue.writeBuffer(mouseBuffer,0,mousePos);
-    for(var i = 0; i < COMPUTE_STEPS; i++){
-        const computePass = encoder.beginComputePass();
-        computePass.setPipeline(simulationPipeline);
-        computePass.setBindGroup(0, bindGroups[step%2]);
-        computePass.dispatchWorkgroups(workgroupCount[0], workgroupCount[1]);
-        computePass.end();
-        step++;
-    }
+    const computePass = encoder.beginComputePass();
+    computePass.setPipeline(simulationPipeline);
+    computePass.setBindGroup(0, bindGroups[step%2]);
+    computePass.dispatchWorkgroups(workgroupCount[0], workgroupCount[1]);
+    computePass.end();
+    step++;
     const pass = encoder.beginRenderPass({
         colorAttachments:[{
             view: ctx.getCurrentTexture().createView(),
@@ -299,7 +265,7 @@ function updateGrid(){
     pass.setPipeline(cellPipeline);
     pass.setVertexBuffer(0,vertexBuffer);
     pass.setBindGroup(0, bindGroups[step%2]);
-    pass.draw(vertices.length/2, 1);
+    pass.draw(vertices.length/2, 100);
 
     pass.end();
     const commandBuffer = encoder.finish();
@@ -307,11 +273,3 @@ function updateGrid(){
 }
 
 setInterval(updateGrid,UPDATE_INTERVAL);
-
-/**
- * Ideas:
- *  Jump to clear the board (or just button on the board)
- *  Some way to add more Y into the system
- *  Mark a sort of focus location
- *  More fragment shader activities
- */
