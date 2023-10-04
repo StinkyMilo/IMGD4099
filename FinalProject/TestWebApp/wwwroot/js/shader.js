@@ -51,8 +51,7 @@ label: "Cell shader",
 code: `
     @group(0) @binding(0) var<uniform> res: vec2f;
     @group(0) @binding(1) var<storage> cellState: array<vec2f>;
-    @group(0) @binding(3) var<uniform> mousePos: vec2f;
-    
+
     @vertex
     fn vs(@location(0) pos: vec2f) -> @builtin(position) vec4f{
         return vec4f(pos, 0., 1.);
@@ -78,7 +77,7 @@ code:`
     @group(0) @binding(0) var<uniform> grid: vec2f;
     @group(0) @binding(1) var<storage> cellStateIn: array<vec2f>;
     @group(0) @binding(2) var<storage, read_write> cellStateOut: array<vec2f>;
-    @group(0) @binding(3) var<uniform> mousePos: vec2f;
+    @group(0) @binding(3) var<uniform> sensorValues: vec2f;
     
     fn cellIndex(cellX: u32, cellY: u32) -> u32{
         return (cellY) * u32(grid.x) + (cellX);
@@ -87,16 +86,17 @@ code:`
     const Dx = 1.;
     const Dy = .5;
     const f = 0.0367;
-    const k = 0.0649;
+    const k = 0.06;
     
     @compute
     @workgroup_size(${WORKGROUP_SIZE}, ${WORKGROUP_SIZE})
     fn cs(@builtin(global_invocation_id) cell: vec3u){
         // return;
         //TODO: make equivalent for Wbb
-        let mpos = (mousePos/grid - vec2f(0.5,0.5))*0.05;
+        let mpos = sensorValues*0.05;
         var convolution: array<f32, 9> = array(0.05, 0.2, 0.05, 0.2, -1., 0.2, 0.05, 0.2, 0.05);
         let conv2 = array((-mpos.x - mpos.y)/2, -mpos.y, (mpos.x-mpos.y)/2, -mpos.x, 0, mpos.x, (-mpos.x+mpos.y)/2, mpos.y, (mpos.x+mpos.y)/2);
+        
         for(var i: u32 = 0; i < 9; i++){
             convolution[i]+=conv2[i];
         }
@@ -277,7 +277,11 @@ const workgroupCount = [
 function updateGrid(){
     const encoder = device.createCommandEncoder();
     const COMPUTE_STEPS = 8;
-    device.queue.writeBuffer(mouseBuffer,0,mousePos);
+    const NORMALIZER = 280;
+    const bias = [0, 0];
+    var sensorPos = new Float32Array([((SensorValues.tr + SensorValues.br) - (SensorValues.tl + SensorValues.bl) + bias[0])/NORMALIZER, ((SensorValues.bl + SensorValues.br) - (SensorValues.tl + SensorValues.tl) + bias[1])/NORMALIZER]);
+    console.log(sensorPos);
+    device.queue.writeBuffer(mouseBuffer,0,sensorPos);
     for(var i = 0; i < COMPUTE_STEPS; i++){
         const computePass = encoder.beginComputePass();
         computePass.setPipeline(simulationPipeline);
