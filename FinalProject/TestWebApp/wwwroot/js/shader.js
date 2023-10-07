@@ -50,7 +50,7 @@ const cellShaderModule = device.createShaderModule({
 label: "Cell shader",
 code: `
     @group(0) @binding(0) var<uniform> res: vec2f;
-    @group(0) @binding(1) var<storage> cellState: array<vec2f>;
+    @group(0) @binding(1) var<storage> cellState: array<vec4f>;
 
     @vertex
     fn vs(@location(0) pos: vec2f) -> @builtin(position) vec4f{
@@ -75,9 +75,9 @@ const simulationShaderModule =device.createShaderModule({
 label: "Game of life shader",
 code:`
     @group(0) @binding(0) var<uniform> grid: vec2f;
-    @group(0) @binding(1) var<storage> cellStateIn: array<vec2f>;
-    @group(0) @binding(2) var<storage, read_write> cellStateOut: array<vec2f>;
-    @group(0) @binding(3) var<uniform> sensorValues: vec2f;
+    @group(0) @binding(1) var<storage> cellStateIn: array<vec4f>;
+    @group(0) @binding(2) var<storage, read_write> cellStateOut: array<vec4f>;
+    @group(0) @binding(3) var<uniform> sensorValues: vec3f;
     
     fn cellIndex(cellX: u32, cellY: u32) -> u32{
         return (cellY) * u32(grid.x) + (cellX);
@@ -87,7 +87,11 @@ code:`
     const Dy = .5;
     const f = 0.0367;
     const k = 0.06;
-    
+    const ageThreshold = 0.1;
+    const ageIncrement = 0.000015;
+    const ageMax = 1.-k;
+    const rawWeightThreshold=10.;
+
     @compute
     @workgroup_size(${WORKGROUP_SIZE}, ${WORKGROUP_SIZE})
     fn cs(@builtin(global_invocation_id) cell: vec3u){
@@ -104,15 +108,33 @@ code:`
         var gradient: vec2f = vec2f(0.,0.);
         for(var i: u32 = 0; i < 9; i++){
             let adjustedIndex = cellIndex(cell.x+(i%3)-1,cell.y+(i/3)-1);
-            let lastVal = cellStateIn[adjustedIndex];
+            let lastVal = cellStateIn[adjustedIndex].xy;
             gradient+=convolution[i]*lastVal;
         }
         let in = cellStateIn[currentIndex];
         let X = in.x;
         let Y = in.y;
-        let XOut = X+(Dx*gradient.x - X*Y*Y+f*(1-X));
-        let YOut = Y+(Dy*gradient.y + X*Y*Y-(k+f)*Y);
-        cellStateOut[currentIndex]=vec2f(XOut,YOut);
+        var age: f32 = in.z;
+        if(Y > ageThreshold){
+            age=min(age+ageIncrement,ageMax);
+        }else{
+            age=0.;
+        }
+        var k2: f32;
+        var XOut: f32;
+        var YOut: f32;
+        if(sensorValues.z < rawWeightThreshold && distance(vec2f(f32(cell.x),f32(cell.y))/grid, vec2f(0.5,0.5)) > 0.05){
+            let burnoutRate = 0.003;
+            XOut = min(1,X+burnoutRate);
+            YOut = max(0,Y-burnoutRate);
+            age = 0.;
+        }else{
+            k2=k+age;
+            XOut = X+(Dx*gradient.x - X*Y*Y+f*(1-X));
+            //TODO: Change to k to reimplement aging.
+            YOut = Y+(Dy*gradient.y + X*Y*Y-(k+f)*Y);
+        }
+        cellStateOut[currentIndex]=vec4f(XOut,YOut,age,0.);
     }
 `
 });
@@ -178,9 +200,9 @@ const uniformBuffer = device.createBuffer({
 });
 device.queue.writeBuffer(uniformBuffer,0,uniformArray);
 
-var mousePos = new Float32Array([0, 0]);
+var mousePos = new Float32Array([0, 0, 0]);
 window.onmousemove=function(event){
-    mousePos = new Float32Array([event.pageX, event.pageY]);
+    mousePos = new Float32Array([event.pageX, event.pageY, 10]);
 }
 
 const mouseBuffer = device.createBuffer({
@@ -191,7 +213,7 @@ const mouseBuffer = device.createBuffer({
 
 device.queue.writeBuffer(mouseBuffer,0,mousePos);
 
-const cellStateArray = new Float32Array(window.innerWidth*window.innerHeight*2);
+const cellStateArray = new Float32Array(window.innerWidth*window.innerHeight*4);
 const cellStateStorage = [
     device.createBuffer({
         label: "Cell State A",
@@ -205,9 +227,9 @@ const cellStateStorage = [
     })         
 ];
 
-for(var i = 0; i < cellStateArray.length; i+=2){
-    var x = (i/2)%window.innerWidth;
-    var y = ((i/2)-x)/window.innerWidth;
+for(var i = 0; i < cellStateArray.length; i+=4){
+    var x = (i/4)%window.innerWidth;
+    var y = ((i/4)-x)/window.innerWidth;
     // console.log(x,y);
     var distX = window.innerWidth/2 - x;
     var distY = window.innerHeight/2 - y;
@@ -219,6 +241,9 @@ for(var i = 0; i < cellStateArray.length; i+=2){
         cellStateArray[i]=1;
         cellStateArray[i+1]=0;
     }
+    cellStateArray[i+2]=0;
+    //Unused
+    cellStateArray[i+3]=0;
 }
 
 device.queue.writeBuffer(cellStateStorage[0],0,cellStateArray);
@@ -279,8 +304,12 @@ function updateGrid(){
     const COMPUTE_STEPS = 8;
     const NORMALIZER = 280;
     const bias = [0, 0];
-    var sensorPos = new Float32Array([((SensorValues.tr + SensorValues.br) - (SensorValues.tl + SensorValues.bl) + bias[0])/NORMALIZER, ((SensorValues.bl + SensorValues.br) - (SensorValues.tl + SensorValues.tl) + bias[1])/NORMALIZER]);
-    console.log(sensorPos);
+    var sensorPos = new Float32Array([
+        ((SensorValues.tr + SensorValues.br) - (SensorValues.tl + SensorValues.bl) + bias[0])/NORMALIZER, 
+        ((SensorValues.bl + SensorValues.br) - (SensorValues.tl + SensorValues.tl) + bias[1])/NORMALIZER, 
+        SensorValues.bl+SensorValues.br+SensorValues.tr+SensorValues.tl
+    ]);
+    // console.log(sensorPos);
     device.queue.writeBuffer(mouseBuffer,0,sensorPos);
     for(var i = 0; i < COMPUTE_STEPS; i++){
         const computePass = encoder.beginComputePass();
