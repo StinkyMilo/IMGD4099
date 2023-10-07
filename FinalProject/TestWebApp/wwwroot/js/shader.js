@@ -7,6 +7,7 @@ if(!adapter){
 }
 const device = await adapter.requestDevice();
 const canv = document.getElementById("gpucanv");
+const NORMALIZER = 280;
 function resizeCanvas() {
     canv.width = window.innerWidth;
     canv.height = window.innerHeight;
@@ -51,6 +52,7 @@ label: "Cell shader",
 code: `
     @group(0) @binding(0) var<uniform> res: vec2f;
     @group(0) @binding(1) var<storage> cellState: array<vec4f>;
+    @group(0) @binding(3) var<uniform> sensorValues: vec3f;
 
     @vertex
     fn vs(@location(0) pos: vec2f) -> @builtin(position) vec4f{
@@ -61,6 +63,9 @@ code: `
     fn fs(@builtin(position) pos: vec4f) -> @location(0) vec4f{
         // let npos = pos.xy/res;
         // return vec4f(mousePos/res,0.,1.);
+        if(distance(sensorValues.xy*0.5 + vec2f(0.5,0.5),pos.xy/res) < 0.01 * sensorValues.z/${NORMALIZER}){
+            return vec4f(1.,0.,0.,1.);
+        }
         let idx = u32((pos.y%res.y)*res.x + (res.x*-0.5) + pos.x%res.x);
         let X = cellState[idx].x;
         let Y = cellState[idx].y;
@@ -97,7 +102,8 @@ code:`
     fn cs(@builtin(global_invocation_id) cell: vec3u){
         // return;
         //TODO: make equivalent for Wbb
-        let mpos = sensorValues*0.05;
+        let cellPos = vec2f(f32(cell.x),f32(cell.y))/grid;
+        let mpos = (sensorValues.xy*0.5 + vec2f(0.5,0.5) - cellPos)*0.05;
         var convolution: array<f32, 9> = array(0.05, 0.2, 0.05, 0.2, -1., 0.2, 0.05, 0.2, 0.05);
         let conv2 = array((-mpos.x - mpos.y)/2, -mpos.y, (mpos.x-mpos.y)/2, -mpos.x, 0, mpos.x, (-mpos.x+mpos.y)/2, mpos.y, (mpos.x+mpos.y)/2);
         
@@ -123,7 +129,8 @@ code:`
         var k2: f32;
         var XOut: f32;
         var YOut: f32;
-        if(sensorValues.z < rawWeightThreshold && distance(vec2f(f32(cell.x),f32(cell.y))/grid, vec2f(0.5,0.5)) > 0.05){
+        //TODO: Remove false && to re-implement jump functionality
+        if(sensorValues.z < rawWeightThreshold && distance(cellPos, vec2f(0.5,0.5)) > 0.05){
             let burnoutRate = 0.003;
             XOut = min(1,X+burnoutRate);
             YOut = max(0,Y-burnoutRate);
@@ -131,7 +138,7 @@ code:`
         }else{
             k2=k+age;
             XOut = X+(Dx*gradient.x - X*Y*Y+f*(1-X));
-            //TODO: Change to k to reimplement aging.
+            //TODO: Change to k2 to reimplement aging.
             YOut = Y+(Dy*gradient.y + X*Y*Y-(k+f)*Y);
         }
         cellStateOut[currentIndex]=vec4f(XOut,YOut,age,0.);
@@ -302,7 +309,6 @@ const workgroupCount = [
 function updateGrid(){
     const encoder = device.createCommandEncoder();
     const COMPUTE_STEPS = 8;
-    const NORMALIZER = 280;
     const bias = [0, 0];
     var sensorPos = new Float32Array([
         ((SensorValues.tr + SensorValues.br) - (SensorValues.tl + SensorValues.bl) + bias[0])/NORMALIZER, 
