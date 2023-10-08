@@ -1,3 +1,5 @@
+import {Pane} from 'https://cdn.jsdelivr.net/npm/tweakpane@4.0.1/dist/tweakpane.min.js';
+
 if(!navigator.gpu){
     throw new Error("No WebGPU :( What a travesty.");
 }
@@ -77,6 +79,7 @@ code: `
 });
 
 const WORKGROUP_SIZE = 8;
+const WEIGHT_THRESHOLD = 10.1;
 
 const simulationShaderModule =device.createShaderModule({
 label: "Game of life shader",
@@ -97,7 +100,7 @@ code:`
     const ageThreshold = 0.1;
     const ageIncrement = 0.000015;
     const ageMax = 1.-k;
-    const rawWeightThreshold=10.;
+    const rawWeightThreshold=${WEIGHT_THRESHOLD};
 
     @compute
     @workgroup_size(${WORKGROUP_SIZE}, ${WORKGROUP_SIZE})
@@ -218,18 +221,26 @@ const uniformBuffer = device.createBuffer({
 });
 device.queue.writeBuffer(uniformBuffer,0,uniformArray);
 
-var mousePos = new Float32Array([0, 0, 0]);
+var posBuffer = new Float32Array([0, 0, 0]);
+var mousePos = [0, 0, 0];
 window.onmousemove=function(event){
-    mousePos = new Float32Array([event.pageX, event.pageY, 10]);
+    mousePos[0] = event.pageX;
+    mousePos[1] = event.pageY;
+}
+window.onmousedown = function(event){
+    mousePos[2] = 0;
+}
+window.onmouseup = function(event){
+    mousePos[2] = WEIGHT_THRESHOLD+1;
 }
 
 const mouseBuffer = device.createBuffer({
     label: "Mouse Pos",
-    size: mousePos.byteLength,
+    size: posBuffer.byteLength,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
 });
 
-device.queue.writeBuffer(mouseBuffer,0,mousePos);
+device.queue.writeBuffer(mouseBuffer,0,posBuffer);
 
 const cellStateArray = new Float32Array(window.innerWidth*window.innerHeight*4);
 const cellStateStorage = [
@@ -317,15 +328,37 @@ const workgroupCount = [
     1
 ];
 
+const pane = new Pane();
+
+const PARAMS = {
+    controls: 'wbb'
+}
+
+pane.addBinding(PARAMS, 'controls', {
+    options:{
+        "Wii Balance Board": 'wbb',
+        "Mouse": 'mouse'
+    }
+});
+
 function updateGrid(){
     const encoder = device.createCommandEncoder();
     const COMPUTE_STEPS = 8;
     const bias = [0, 0];
-    var sensorPos = new Float32Array([
-        ((SensorValues.tr + SensorValues.br) - (SensorValues.tl + SensorValues.bl) + bias[0])/NORMALIZER, 
-        ((SensorValues.bl + SensorValues.br) - (SensorValues.tl + SensorValues.tl) + bias[1])/NORMALIZER, 
-        SensorValues.bl+SensorValues.br+SensorValues.tr+SensorValues.tl
-    ]);
+    var sensorPos;
+    if(PARAMS.controls == 'wbb'){
+        sensorPos = new Float32Array([
+            ((SensorValues.tr + SensorValues.br) - (SensorValues.tl + SensorValues.bl) + bias[0])/NORMALIZER, 
+            ((SensorValues.bl + SensorValues.br) - (SensorValues.tl + SensorValues.tr) + bias[1])/NORMALIZER, 
+            SensorValues.bl+SensorValues.br+SensorValues.tr+SensorValues.tl
+        ]);
+    }else{
+        sensorPos = new Float32Array([
+            2*(mousePos[0] - window.innerWidth/2)/window.innerWidth,
+            2*(mousePos[1] - window.innerHeight/2)/window.innerHeight,
+            mousePos[2]
+        ]);
+    }
     // console.log(sensorPos);
     device.queue.writeBuffer(mouseBuffer,0,sensorPos);
     for(var i = 0; i < COMPUTE_STEPS; i++){
