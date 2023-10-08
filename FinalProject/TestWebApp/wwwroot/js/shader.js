@@ -63,7 +63,9 @@ code: `
     fn fs(@builtin(position) pos: vec4f) -> @location(0) vec4f{
         // let npos = pos.xy/res;
         // return vec4f(mousePos/res,0.,1.);
-        if(distance(sensorValues.xy*0.5 + vec2f(0.5,0.5),pos.xy/res) < 0.01 * sensorValues.z/${NORMALIZER}){
+        let posAdjusted = vec2f(pos.x - res.x/2, pos.y - res.y/2)/res;
+        let pos2 = vec2f(posAdjusted.x*res.x/res.y,posAdjusted.y);
+        if(distance(sensorValues.xy,pos2) < 0.01 * sensorValues.z/${NORMALIZER}){
             return vec4f(1.,0.,0.,1.);
         }
         let idx = u32((pos.y%res.y)*res.x + (res.x*-0.5) + pos.x%res.x);
@@ -130,10 +132,19 @@ code:`
         var XOut: f32;
         var YOut: f32;
         //TODO: Remove false && to re-implement jump functionality
-        if(sensorValues.z < rawWeightThreshold && distance(cellPos, vec2f(0.5,0.5)) > 0.05){
+
+        //I have no clue why this works. This should not be how to make it circular rather than oval shaped. But it seems to.
+        // let cellPos2 = (vec2f(cellPos.x,cellPos.y)) * vec2f(grid.x/grid.y,1.) - vec2f(0.5,0.);
+        let cellAdjusted = vec2f(f32(cell.x) - grid.x/2, f32(cell.y) - grid.y/2)/grid;
+        //This by no means should work. I shouldn't be multiplying by grid.x / grid.y; it should be the reciprocal.
+        //Nonetheless, this works. No clue why.
+        let cellPos2 = vec2f(f32(cellAdjusted.x)*grid.x/grid.y,f32(cellAdjusted.y));
+        if(sensorValues.z < rawWeightThreshold && distance(cellPos2,vec2f(0.,0.)) > 0.08){
             let burnoutRate = 0.003;
             XOut = min(1,X+burnoutRate);
             YOut = max(0,Y-burnoutRate);
+            // YOut = 1.;
+            // XOut = 0.;
             age = 0.;
         }else{
             k2=k+age;
