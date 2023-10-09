@@ -9,7 +9,6 @@ if(!adapter){
 }
 const device = await adapter.requestDevice();
 const canv = document.getElementById("gpucanv");
-const NORMALIZER = 280;
 function resizeCanvas() {
     canv.width = window.innerWidth;
     canv.height = window.innerHeight;
@@ -55,7 +54,7 @@ label: "Cell shader",
 code: `
     @group(0) @binding(0) var<uniform> res: vec2f;
     @group(0) @binding(1) var<storage> cellState: array<vec4f>;
-    @group(0) @binding(3) var<uniform> sensorValues: vec3f;
+    @group(0) @binding(3) var<uniform> sensorValues: vec4f;
     @group(0) @binding(4) var backBuffer: texture_2d<f32>;
     @group(0) @binding(5) var backSampler: sampler;
 
@@ -71,7 +70,9 @@ code: `
         let fb = textureSample(backBuffer,backSampler, pos.xy/res);
         let posAdjusted = vec2f(pos.x - res.x/2, pos.y - res.y/2)/res;
         let pos2 = vec2f(posAdjusted.x*res.x/res.y,posAdjusted.y);
-        if(distance(sensorValues.xy,pos2) < 0.01 * sensorValues.z/${NORMALIZER}){
+        //280 is a bit of a magic number here. In an ideal case it would be the same as the normalizing factor passed
+        //into tweakpane, but I got a bit lazy and didn't want to add another binding, and the size of the dot isn't too important.
+        if(sensorValues.w > 0 && distance(sensorValues.xy,pos2) < 0.01 * sensorValues.z/280.){
             return vec4f(1.,0.,0.,1.);
         }
         let idx = u32((pos.y%res.y)*res.x + (res.x*-0.5) + pos.x%res.x);
@@ -91,7 +92,8 @@ code:`
     @group(0) @binding(0) var<uniform> grid: vec2f;
     @group(0) @binding(1) var<storage> cellStateIn: array<vec4f>;
     @group(0) @binding(2) var<storage, read_write> cellStateOut: array<vec4f>;
-    @group(0) @binding(3) var<uniform> sensorValues: vec3f;
+    @group(0) @binding(3) var<uniform> sensorValues: vec4f;
+    @group(0) @binding(6) var<uniform> useAge: u32;
     
     fn cellIndex(cellX: u32, cellY: u32) -> u32{
         return (cellY) * u32(grid.x) + (cellX);
@@ -154,10 +156,14 @@ code:`
             // XOut = 0.;
             age = 0.;
         }else{
-            k2=k+age;
+            var k2: f32;
+            if(useAge==1){
+                k2=k+age;
+            }else{
+                k2 = k;
+            }
             XOut = X+(Dx*gradient.x - X*Y*Y+f*(1-X));
-            //TODO: Change to k2 to reimplement aging.
-            YOut = Y+(Dy*gradient.y + X*Y*Y-(k+f)*Y);
+            YOut = Y+(Dy*gradient.y + X*Y*Y-(k2+f)*Y);
         }
         cellStateOut[currentIndex]=vec4f(XOut,YOut,age,0.);
     }
@@ -190,6 +196,10 @@ entries: [{
         binding: 5,
         visibility: GPUShaderStage.FRAGMENT,
         sampler: {}
+    },{
+        binding: 6,
+        visibility: GPUShaderStage.COMPUTE,
+        buffer: {}
     }]
 });
 
@@ -233,8 +243,16 @@ const uniformBuffer = device.createBuffer({
 });
 device.queue.writeBuffer(uniformBuffer,0,uniformArray);
 
-var posBuffer = new Float32Array([0, 0, 0]);
-var mousePos = [0, 0, 0];
+const age = new Uint32Array([0]);
+const ageBuffer = device.createBuffer({
+    label: "Age Buffer",
+    size: age.byteLength,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+});
+device.queue.writeBuffer(ageBuffer,0,age);
+
+var posBuffer = new Float32Array([0, 0, 0, 0]);
+var mousePos = [0, 0, 0, 0];
 window.onmousemove=function(event){
     mousePos[0] = event.pageX;
     mousePos[1] = event.pageY;
@@ -329,6 +347,9 @@ const bindGroups = [
         },{
             binding: 5,
             resource: sampler.sampler
+        },{
+            binding: 6,
+            resource: {buffer: ageBuffer}
         }]
     }),
 
@@ -353,6 +374,9 @@ const bindGroups = [
         },{
             binding: 5,
             resource: sampler.sampler
+        },{
+            binding: 6,
+            resource: {buffer: ageBuffer}
         }]
     })
 ];
@@ -370,7 +394,9 @@ const workgroupCount = [
 const pane = new Pane();
 
 const PARAMS = {
-    controls: 'wbb'
+    controls: 'wbb',
+    "Use Age": false,
+    "Normalizing Factor": 280
 }
 
 pane.addBinding(PARAMS, 'controls', {
@@ -378,6 +404,12 @@ pane.addBinding(PARAMS, 'controls', {
         "Wii Balance Board": 'wbb',
         "Mouse": 'mouse'
     }
+});
+pane.addBinding(PARAMS, "Use Age");
+pane.addBinding(PARAMS, "Normalizing Factor",{
+    step: 1,
+    min: 50,
+    max: 400
 });
 
 function updateGrid(){
@@ -387,17 +419,20 @@ function updateGrid(){
     var sensorPos;
     if(PARAMS.controls == 'wbb'){
         sensorPos = new Float32Array([
-            ((SensorValues.tr + SensorValues.br) - (SensorValues.tl + SensorValues.bl) + bias[0])/NORMALIZER, 
-            ((SensorValues.bl + SensorValues.br) - (SensorValues.tl + SensorValues.tr) + bias[1])/NORMALIZER, 
-            SensorValues.bl+SensorValues.br+SensorValues.tr+SensorValues.tl
+            ((SensorValues.tr + SensorValues.br) - (SensorValues.tl + SensorValues.bl) + bias[0])/PARAMS["Normalizing Factor"], 
+            ((SensorValues.bl + SensorValues.br) - (SensorValues.tl + SensorValues.tr) + bias[1])/PARAMS["Normalizing Factor"], 
+            SensorValues.bl+SensorValues.br+SensorValues.tr+SensorValues.tl,
+            1
         ]);
     }else{
         sensorPos = new Float32Array([
             2*(mousePos[0] - window.innerWidth/2)/window.innerWidth,
             2*(mousePos[1] - window.innerHeight/2)/window.innerHeight,
-            mousePos[2]
+            mousePos[2],
+            0
         ]);
     }
+    device.queue.writeBuffer(ageBuffer,0,new Uint32Array([PARAMS["Use Age"]?1:0]));
     // console.log(sensorPos);
     device.queue.writeBuffer(mouseBuffer,0,sensorPos);
     for(var i = 0; i < COMPUTE_STEPS; i++){
