@@ -19,7 +19,8 @@ const ctx = canv.getContext("webgpu");
 const canvasFormat = navigator.gpu.getPreferredCanvasFormat();
 ctx.configure({
     device: device,
-    format: canvasFormat
+    format: canvasFormat,
+    usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC
 });
 
 const vertices = new Float32Array([
@@ -55,6 +56,8 @@ code: `
     @group(0) @binding(0) var<uniform> res: vec2f;
     @group(0) @binding(1) var<storage> cellState: array<vec4f>;
     @group(0) @binding(3) var<uniform> sensorValues: vec3f;
+    @group(0) @binding(4) var backBuffer: texture_2d<f32>;
+    @group(0) @binding(5) var backSampler: sampler;
 
     @vertex
     fn vs(@location(0) pos: vec2f) -> @builtin(position) vec4f{
@@ -65,6 +68,7 @@ code: `
     fn fs(@builtin(position) pos: vec4f) -> @location(0) vec4f{
         // let npos = pos.xy/res;
         // return vec4f(mousePos/res,0.,1.);
+        let fb = textureSample(backBuffer,backSampler, pos.xy/res);
         let posAdjusted = vec2f(pos.x - res.x/2, pos.y - res.y/2)/res;
         let pos2 = vec2f(posAdjusted.x*res.x/res.y,posAdjusted.y);
         if(distance(sensorValues.xy,pos2) < 0.01 * sensorValues.z/${NORMALIZER}){
@@ -73,7 +77,7 @@ code: `
         let idx = u32((pos.y%res.y)*res.x + (res.x*-0.5) + pos.x%res.x);
         let X = cellState[idx].x;
         let Y = cellState[idx].y;
-        return vec4f(0,Y,Y,1.);
+        return vec4f(0,0,Y,1.)*0.025 + vec4f(fb.r,0,fb.b,fb.a)*0.975 + vec4f(0.,Y,0.,1.);
     }
 `
 });
@@ -178,6 +182,14 @@ entries: [{
         binding: 3,
         visibility: GPUShaderStage.COMPUTE | GPUShaderStage.FRAGMENT,
         buffer: {}
+    },{
+        binding: 4,
+        visibility: GPUShaderStage.FRAGMENT,
+        texture: {}
+    },{
+        binding: 5,
+        visibility: GPUShaderStage.FRAGMENT,
+        sampler: {}
     }]
 });
 
@@ -279,6 +291,21 @@ device.queue.writeBuffer(cellStateStorage[0],0,cellStateArray);
 
 device.queue.writeBuffer(cellStateStorage[1],0,cellStateArray);
 
+const backTexture = device.createTexture({
+    size: [window.innerWidth, window.innerHeight],
+    format: canvasFormat,
+    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+});
+
+const backView = backTexture.createView();
+const sampler = {
+    type: 'sampler',
+    sampler: device.createSampler({
+        magFilter:'linear',
+        minFilter: 'linear'
+    })
+};
+
 const bindGroups = [
     device.createBindGroup({
         label: "Cell renderer bind group A",
@@ -296,6 +323,12 @@ const bindGroups = [
         },{
             binding: 3,
             resource: {buffer: mouseBuffer}
+        },{
+            binding: 4,
+            resource: backView
+        },{
+            binding: 5,
+            resource: sampler.sampler
         }]
     }),
 
@@ -314,6 +347,12 @@ const bindGroups = [
         },{
             binding: 3,
             resource: {buffer: mouseBuffer}
+        },{
+            binding: 4,
+            resource: backView
+        },{
+            binding: 5,
+            resource: sampler.sampler
         }]
     })
 ];
@@ -369,9 +408,10 @@ function updateGrid(){
         computePass.end();
         step++;
     }
+    var swapChainTexture = ctx.getCurrentTexture();
     const pass = encoder.beginRenderPass({
         colorAttachments:[{
-            view: ctx.getCurrentTexture().createView(),
+            view: swapChainTexture.createView(),
             loadOp: "clear",
             clearValue: {r: 0, g: 0.4, b: 0.4, a: 1},
             storeOp: "store"
@@ -385,6 +425,14 @@ function updateGrid(){
     pass.draw(vertices.length/2, 1);
 
     pass.end();
+
+    //TODO: Add the encoder.copyTextureToTexture call with swapChainTexture and backTexture
+    encoder.copyTextureToTexture(
+        {texture: swapChainTexture},
+        {texture: backTexture},
+        [window.innerWidth, window.innerHeight]
+    );
+
     const commandBuffer = encoder.finish();
     device.queue.submit([commandBuffer]);
 }
