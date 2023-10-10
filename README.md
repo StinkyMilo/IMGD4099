@@ -28,3 +28,6 @@ You can find the project [here](https://assignment-4-milo.glitch.me/). The code 
 
 ## Assignment 5
 You can find the project [here](https://ants-ants-ants-ants-ants-ants-ants-ants-ants-ants-ants-ants.glitch.me/). The code is located [here](https://github.com/StinkyMilo/IMGD4099/tree/main/Assignment5/code), and the explanation is [here](https://github.com/StinkyMilo/IMGD4099/blob/main/Assignment5/intent.md).
+
+## Final Project
+You can find the mouse-only, web version of the project [here](https://final-project-milo-mouse-version.glitch.me/). Video documentation of the full version is [here](https://youtu.be/AgWRrtkt4uA). The explanation is [here](https://github.com/StinkyMilo/IMGD4099/blob/main/FinalProject/intent.md). The code for the full version is [here](https://github.com/StinkyMilo/IMGD4099/tree/main/FinalProject/WiiDiffusion), and the code for the web-only version is [here](https://github.com/StinkyMilo/IMGD4099/tree/main/FinalProject/WebVersionCode).
