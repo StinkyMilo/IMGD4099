@@ -78,7 +78,7 @@ code: `
         let idx = u32((pos.y%res.y)*res.x + (res.x*-0.5) + pos.x%res.x);
         let X = cellState[idx].x;
         let Y = cellState[idx].y;
-        return vec4f(0,0,Y,1.)*0.025 + vec4f(fb.r,0,fb.b,fb.a)*0.975 + vec4f(0.,Y,0.,1.);
+        return vec4f(0,0,Y,1.)*0.025 + vec4f(0,0,fb.b,fb.a)*0.975 + vec4f(0.,Y,0.,1.);
     }
 `
 });
