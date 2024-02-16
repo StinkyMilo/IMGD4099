@@ -1,4 +1,4 @@
-import { default as seagulls } from '../../seagulls.js'
+import { default as seagulls } from './seagulls.js'
 import {Pane} from 'https://cdn.jsdelivr.net/npm/tweakpane@4.0.1/dist/tweakpane.min.js';
 
 const WORKGROUP_SIZE = 8
